@@ -1,0 +1,22 @@
+/* 
+In light mode -
+white: var(--bs-body-bg)
+black: var(--bs-emphasis-color)
+
+In dark mode -
+white: var(--bs-emphasis-color)
+black: var(--bs-body-bg)
+*/
+
+:root,
+[data-bs-theme=light] {
+  --shadow: 4px 4px 8px rgba(185, 185, 185, 0.827);
+  --svg-shadow: drop-shadow(var(--shadow));
+  --advancedToolbar-hover-color: #d3d4d5;
+}
+
+[data-bs-theme=dark] {
+  --shadow: 4px 4px 8px rgba(0, 0, 0, 0.75);
+  --svg-shadow: drop-shadow(var(--shadow));
+  --advancedToolbar-hover-color: #424649;
+}

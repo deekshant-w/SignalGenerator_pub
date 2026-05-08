@@ -1,0 +1,6 @@
+numba
+pandas
+scipy
+matplotlib
+flask
+flask_cors

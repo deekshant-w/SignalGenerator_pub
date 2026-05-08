@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Signal Generator">
+  <title>Signal Generator</title>
+  <!-- Bootstrap 5.3.3 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <!-- SplideJs Carousal CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css" rel="stylesheet">
+  <!-- Main CSS --> 
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+  <!-- Django routing constants for dynamic URLs -->
+  <script>
+    function FolderImport(i){
+      // Remove the file name from the end of the path
+      let path = i.substring(0, i.lastIndexOf("/"));
+      // add trailing slash if not present
+      if (path[path.length - 1] != "/") {
+        path += "/";
+      }
+      return path;
+    }
+    // Dynamic variable declaration for js imports
+    var import_listCard = "{{ url_for('static', filename='images/listCard/dummy.jpg') }}";
+    import_listCard = FolderImport(import_listCard);
+    var import_newCard = "{{ url_for('static', filename='images/newCard/dummy.jpg') }}";
+    import_newCard = FolderImport(import_newCard);
+    var poreLogicFile = "{{ url_for('static', filename='js/poreLogic.js') }}";
+  </script>
+  <!-- Globals Js (Shared variables) -->
+  <script src="{{ url_for('static', filename='js/globals.js') }}"></script>
+
+</head>
+
+<body data-bs-theme="dark">
+  <!-- Bottom Bar -->
+  <nav class="navbar bg-body-tertiary" style="z-index: 3;">
+    <div class="container-fluid">
+      <div class="gap-2" style="display: inline-flex;">
+        <button class="btn btn-danger" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight1" aria-controls="offcanvasRight" aria-label="Advanced Toolbar">Advanced</button>
+        <button class="btn btn-warning" onclick="undoHandler()">Undo&nbsp;Delete</button>
+      </div>
+      <a class="navbar-brand" href="">Signal Generator</a>
+      <div class="gap-2" style="display: inline-flex;">
+        <button class="btn btn-primary" onclick="attenuate()">Attenuate</button>
+        <button class="btn btn-success" onclick="sendMolecule()">Generate&nbsp;Signal</button>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- UI for Signal Generator -->
+  <div class="p-4">
+    <!-- Row 1 & 2 -->
+    <div class="row mb-4">
+      <!-- Left Panel -->
+      <div class="col-9" id="leftPanel">
+        <!-- Carrousal -->
+        <div class="border rounded p-1 mb-4" style="min-height: 10vh;">
+        
+          <!-- Carousal -->
+          <div class="splide" aria-label="Molecule Components">
+            <div class="splide__track">
+              <ul class="splide__list" id="carousal_list"></ul>
+            </div>
+          </div>
+        </div>
+        <!-- Inputs -->
+        <div class="row w-100 me-0 ms-0" id="row2">
+        
+          <!-- New Component -->
+          <div class="p-0 col-3 pe-4">
+            <div class="p-3 border rounded h-100 newComponentBox">
+              <h5 class="pb-2">Add New Component</h5>
+              <select class="form-select form-select" aria-label="Select new component." id="newComponentSelector">
+                <option value="Cylinder">Cylinder</option>
+                <option value="Sphere">Sphere</option>
+                <option value="Cone">Cone</option>
+                <option value="Wedge">Wedge</option>
+                <option value="ellipsoid">Ellipsoid</option>
+                <!-- <option disabled style="text-align: center;">── Predfeined Profiles ──</option> -->
+                <!-- <optgroup label="── Predfeined Profiles ──">
+                </optgroup> -->
+                <!-- <option value="3">dsDNA</option> -->
+                <!-- <option value="3">6HB</option> -->
+              </select>
+              <div class="newComponentImageHolder">
+                <img class="newComponentImage" id="componentShapeImage">
+              </div>
+            </div>
+          </div>
+          <!-- Details of the component -->
+          <div class="p-0 col">
+            <div class="p-3 h-100 border rounded" id="componentDetails">
+              <h5>Component Details</h5>
+              <!-- Form for components is copied inside this div. -->
+              <div id="inputFormPlaceHolder"></div>
+              <br><div class="col-12">
+                <button type="submit" class="btn btn-lg btn-primary" onclick="addComponent(this)">Add</button>
+              </div>
+            </div>
+          </div>
+          <!-- Nanopore Operations -->
+          <div class="p-0 col ps-4">
+            <div class="p-3 border rounded h-100">
+              <h5>Pore Details</h5>
+              <select class="form-select" aria-label="Select pore type." id="poreTypeSelector">
+                <option value="2dPore">2D Pore</option>
+                <option value="CylindricalPore">Cylindrical Pore</option>
+                <option value="ConicalPore">Conical Pore</option>
+                <option value="HyperbolicPore">Hyperbolic Pore</option>
+              </select><br>
+              <form class="row mb-4 gy-3" id="poreDetailsContainer">
+                <div class="col-md-6" data-pore-resolution-DONOT-DELETE>
+                  <label for="signalResolution" class="form-label">Resolution</label>
+                  <div class="input-group">
+                    <input type="number" class="form-control" name="signalResolution" placeholder="Signal Resolution" value="1000" id="signalResolution" placeholder="0" onchange="poreDetailChange()">
+                  </div>
+                </div>
+              </form>
+              
+            </div>
+          </div>
+        
+        </div>
+      </div>
+      <!-- Right Panel -->
+      <div class="col-3">
+        <!-- Molecule shapes plotted using plotly -->
+        <div class="col p-0 m-0 h-100" id="drawBoxDivCol">
+          <!-- <span style="position: absolute;display: inline;color: red;transform: translate(50%, 100%);font-size: 2vw;font-weight: bold;font-family: monospace;">Invalid</span> -->
+          <div class="border rounded p-0 overflow-auto h-100" id="drawBoxDiv">
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Buttons (Old Unused now)-->
+    <div class="d-flex justify-content-begin gap-2 flex-row-reverse mb-4 visually-hidden">
+      <input type="file" accept=".yaml, .yml" name="uploadFileDummy" id="uploadFileDummy" style="display: none;visibility: hidden;">
+      <button
+      type="button"
+      class="btn btn-primary"
+      onclick="uploadMolecule()"
+      data-bs-placement="bottom"
+      data-bs-toggle="_tooltip"
+      data-bs-html="true"
+      data-bs-title="No file uploaded.">Upload</button>
+      <button
+      type="button"
+      class="btn btn-primary"
+      data-bs-placement="bottom"
+      onclick="downloadMolecule()"
+      data-bs-toggle="_tooltip"
+      data-bs-html="true"
+      data-bs-title="Click to download<br>current molecule.">Download</button>
+      <button class="btn btn-warning" onclick="undoHandler()">Undo&nbsp;Delete</button>
+      <button class="btn btn-danger" onclick="clearMolecule()">Reset</button>
+      <button class="btn btn-success" onclick="sendMolecule()">Submit</button>
+    </div>
+    <!-- Row 3 - Plot -->
+    <div class="row gy-4 visually-hidden mb-1" id="signalPlottingRow">
+      <div class="col">
+        <div class="border rounded p-1" id="plottingDiv">
+          <!-- Refresh Plot button -->
+          <!-- Not needed: Plotly will automatically update the plot (responsive config) -->
+          <!-- <button class="btn" id="plotRefresh">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
+              <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+            </svg>
+          </button> -->
+        </div>
+      </div>
+    </div>
+    <!-- Row 4 - Noise Button -->
+    <!-- visually-hidden -->
+    <div class="d-flex justify-content-begin gap-2 mb-4 align-items-center" id="noiseBox">
+      <div class="form-floating">
+        <input type="number" id="transition_time" class="form-control" aria-describedby="Trace Duration" value="100" placeholder="Trace Duration">
+        <label for="transition_time">Trace Duration (µs)</label>
+      </div>
+      <div class="form-floating">
+        <input type="number" id="sampling_rate" class="form-control" aria-describedby="Sampling Rate" value="4166667" placeholder="Sampling Rate">
+        <label for="sampling_rate">Sampling Rate</label>
+      </div>
+      <div class="form-floating">
+        <input type="number" id="sigma" class="form-control" aria-describedby="sigma" value="0.01" placeholder="Standard Deviation">
+        <label for="sigma">Gaussian Noise σ</label>
+      </div>
+      <div class="form-floating">
+        <input type="number" id="cutoff_frequency" class="form-control" aria-describedby="Cutoff Frequency" value="1000000" placeholder="Cutoff Frequency">
+        <label for="cutoff_frequency">Cutoff Frequency</label>
+      </div>
+      <div class="form-floating">
+        <input type="number" id="filter_poles" class="form-control" aria-describedby="Filter Poles" value="8" placeholder="Filter Poles">
+        <label for="filter_poles">Bessel Filter Poles</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Components -->
+  <div id="HiddenComponents" style="display: none;">
+    <!-- Cylinder Form -->
+    <form class="row g-4" id="cylinderForm">
+      <div class="col-md-6">
+        <label for="cylinderRadius" class="form-label">Radius</label>
+        <div class="input-group">
+          <input type="number" class="form-control form-control" name="cylinderRadius" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label for="cylinderLength" class="form-label">Length</label>
+        <div class="input-group">
+          <input type="number" class="form-control form-control" name="cylinderLength" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+    </form>
+
+    <!-- Sphere Form -->
+    <form class="row g-4" id="sphereForm">
+      <div class="col-md-6">
+        <label for="sphereRadius" class="form-label">Radius</label>
+        <div class="input-group">
+          <input type="number" class="form-control form-control" name="sphereRadius" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+    </form>
+
+    <!-- Wedge Form -->
+    <form class="row g-4" id="wedgeForm">
+      <div class="col-md-6">
+        <label for="wedgeLength" class="form-label">Length</label>
+        <div class="input-group">
+          <input type="number" class="form-control form-control" name="wedgeLength" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label for="wedgeRadius1" class="form-label">Radius 1</label>
+        <div class="input-group">
+          <input type="number" class="form-control form-control" name="wedgeRadius1" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label for="wedgeRadius2" class="form-label">Radius 2</label>
+        <div class="input-group">
+          <input type="number" class="form-control form-control" name="wedgeRadius2" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label for="wedgeAngle" class="form-label">Angle &#x3D5;</label>
+        <div class="input-group">
+          <input type="number" class="form-control form-control" name="wedgeAngle" placeholder="0">
+          <span class="input-group-text">rad</span>
+        </div>
+      </div>
+    </form>
+
+    <!--  Cone Form -->
+    <form class="row g-4" id="coneForm">
+      <div class="col-md-6">
+        <label for="coneLength" class="form-label">Length</label>
+        <div class="input-group">
+          <input type="number" class="form-control form-control" name="coneLength" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label for="coneRadius1" class="form-label">Radius 1</label>
+        <div class="input-group">
+          <input type="number" class="form-control form-control" name="coneRadius1" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label for="coneRadius2" class="form-label">Radius 2</label>
+        <div class="input-group">
+          <input type="number" class="form-control form-control" name="coneRadius2" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+    </form>
+
+    <!-- ellipsoid Form -->
+    <form class="row g-4" id="ellipsoidForm">
+      <div class="col-md-6">
+        <label for="ellipsoidAxisA" class="form-label">Axis A</label>
+        <div class="input-group">
+          <input type="number" class="form-control form-control" name="ellipsoidAxisA" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label for="ellipsoidAxisB" class="form-label">Axis B</label>
+        <div class="input-group">
+          <input type="number" class="form-control form-control" name="ellipsoidAxisB" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+    </form>
+
+    <!-- 2D Pore Details -->
+    <div id="2dPoreDetails">
+      <div class="col-md-6">
+        <label for="nanoporeRadius_2D" class="form-label">Pore Radius</label>
+        <div class="input-group">
+          <input type="number" class="form-control" name="nanoporeRadius_2D" placeholder="Nanopore Radius" value="3.0" id="nanoporeRadius_2D" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Cylindrical Pore Details -->
+    <div id="CylindricalPoreDetails">
+      <div class="col-md-6">
+        <label for="nanoporeRadius_cylindrical" class="form-label">Pore Radius</label>
+        <div class="input-group">
+          <input type="number" class="form-control" name="nanoporeRadius_cylindrical" placeholder="Nanopore Radius" value="3.0" id="nanoporeRadius_cylindrical" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label for="nanoporeLength_cylindrical" class="form-label">Pore Length</label>
+        <div class="input-group">
+          <input type="number" class="form-control" name="nanoporeLength_cylindrical" placeholder="Nanopore Radius" value="12.0" id="nanoporeRadius_cylindrical" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Conical Pore Details -->
+    <div id="ConicalPoreDetails">
+      <div class="col-md-6">
+        <label for="nanoporeRadius1_conical" class="form-label">Pore Radius 1</label>
+        <div class="input-group">
+          <input type="number" class="form-control" name="nanoporeRadius1_conical" placeholder="Nanopore Radius" value="1.5" id="nanoporeRadius_conical" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label for="nanoporeRadius2_conical" class="form-label">Pore Radius 2</label>
+        <div class="input-group">
+          <input type="number" class="form-control" name="nanoporeRadius2_conical" placeholder="Nanopore Radius" value="0.5" id="nanoporeRadius_conical" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label for="nanoporeLength_conical" class="form-label">Pore Length</label>
+        <div class="input-group">
+          <input type="number" class="form-control" name="nanoporeLength_conical" placeholder="Nanopore Length" value="2.1" id="nanoporeLength_conical" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Hyperbolic Pore Details -->
+    <div id="HyperbolicPoreDetails">
+      <div class="col-md-6">
+        <label for="nanoporeRadiusIn_hyperbolic" class="form-label">Pore In-Radius</label>
+        <div class="input-group">
+          <input type="number" class="form-control" name="nanoporeRadiusIn_hyperbolic" placeholder="Nanopore In-Radius" value="1.4" id="nanoporeRadiusIn_hyperbolic" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label for="nanoporeRadiusOut_hyperbolic" class="form-label">Pore Out-Radius</label>
+        <div class="input-group">
+          <input type="number" class="form-control" name="nanoporeRadiusOut_hyperbolic" placeholder="Nanopore Out-Radius" value="2.1" id="nanoporeRadiusOut_hyperbolic" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label for="nanoporeLength_hyperbolic" class="form-label">Pore Length</label>
+        <div class="input-group">
+          <input type="number" class="form-control" name="nanoporeLength_hyperbolic" placeholder="Nanopore Length" value="3.1" id="nanoporeLength_hyperbolic" placeholder="0">
+          <span class="input-group-text">nm</span>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Carousal Card -->
+    <li class="splide__slide" id="carousalCard" data-parent-stop-search data-DONOT-DELETE>
+      <!-- Card Template -->
+      <div class="card h-100" style="width: 12rem">
+        <span class="position" data-carousal-card-position>0</span>
+        <!-- Hover Options -->
+        <span class="hoverOptionsContainer">
+          <span class="leftShiftCardButton" onclick="leftArrowHandler(this)">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrow-left-short" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"/>
+            </svg>
+          </span>
+          <span class="rightShiftCardButton" onclick="rightArrowHandler(this)">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8"/>
+            </svg>
+          </span>
+          <div class="dropdown copyCardBigButtonBox" data-bs-toggle="dropdown" data-bs-offset="-1,-5" onmouseleave="bootstrap.Dropdown.getInstance(this).hide()">
+            <span role="button" style="align-items: end; display: flex;">Copy&nbsp;
+              <svg style="align-self: center;" xmlns="http://www.w3.org/2000/svg"fill="currentColor" class="bi bi-copy" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z"/>
+              </svg>
+            </span>
+            <ul class="dropdown-menu">
+              <li onclick="copyHereButtonHandler(this)"><a class="dropdown-item">Copy Here</a></li>
+              <li onclick="copyToEndButtonHandler(this)"><a class="dropdown-item">Copy at End</a></li>
+            </ul>
+          </div>
+          <span class="editCardBigButtonBox" onclick="editButtonHandler(this)">
+            Edit&nbsp;
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+              <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+              <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+            </svg>
+          </span>
+          <span class="deleteCardBigButtonBox" onclick="deleteButtonHandler(this)">
+            Delete&nbsp;
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
+              <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/>
+            </svg>
+          </span>
+        </span>
+        <div class="card-img-top"><img data-carousal-card-image style="max-width: 100%; padding-top:5%"></div>
+        <div class="card-body">
+          <h5 class="card-title" data-carousal-card-title>Hidden Card</h5>
+          <p class="card-text" data-carousal-card-badge-container></p>
+        </div>
+      </div>
+    </li>
+
+    <!-- Carousal Card Badges -->
+    <span class="badge" style="background-color: var(--bs-emphasis-color); color: var(--bs-body-bg);" data-carousal-card-badge></span>
+    
+  </div>
+  <!-- Hidden Components End -->
+
+  <!-- Edit Modal Begins-->
+  <div class="modal fade" id="editModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="editModalTitle">Modal title</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div style="text-align: center;">
+            <img id="editModalImage" style="max-width: 100%;margin-bottom: 1vh;max-height: 20vh;" >
+            <span id="editModalPosition" class="position-absolute top-0 start-50 translate-middle badge rounded-pill bg-primary">0</span>
+          </div>
+          <div id="editModalFormContainer">Your Form Here...</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Discard</button>
+          <button type="button" class="btn btn-success" id="editModalSubmitButton" onclick="editModalSubmitHandler()">
+            <span style="display: flex; align-items: center; column-gap: 0.2rem;">
+              Save
+              <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-floppy" viewBox="0 0 16 16" style="height: 1rem;">
+                <path d="M11 2H9v3h2z"/>
+                <path d="M1.5 0h11.586a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13A1.5 1.5 0 0 1 1.5 0M1 1.5v13a.5.5 0 0 0 .5.5H2v-4.5A1.5 1.5 0 0 1 3.5 9h9a1.5 1.5 0 0 1 1.5 1.5V15h.5a.5.5 0 0 0 .5-.5V2.914a.5.5 0 0 0-.146-.353l-1.415-1.415A.5.5 0 0 0 13.086 1H13v4.5A1.5 1.5 0 0 1 11.5 7h-7A1.5 1.5 0 0 1 3 5.5V1H1.5a.5.5 0 0 0-.5.5m3 4a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V1H4zM3 15h10v-4.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5z"/>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Edit Modal ends -->
+  
+  <!-- Waiting Screen -->
+  <div class="waitingScreen" id="waitingScreen">
+    <div class="spinner-border text-primary" role="status" style="width: 10rem;height: 10rem;"></div>
+    <span style="position: absolute;">Loading...</span>
+  </div>
+
+  <!-- Reusable Toast -->
+  <div class="toast align-items-center text-bg-success border-0 position-fixed top-0 end-0 m-2 z-3" role="alert" aria-live="assertive" aria-atomic="true" id="ReusableToast">
+    <div class="d-flex">
+      <div class="toast-body p-3 fs-6" id="ReusableToastMessage">
+        Hello, world! This is a toast message.
+      </div>
+      <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-2" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+  <!-- Reusable Toast Ends -->
+
+  <!-- Advanced Toolbar Trigger Button -->
+  <button class="btn btn-dark p-1 advancedToolbar visually-hidden" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight1" aria-controls="offcanvasRight" aria-label="Advanced Toolbar">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-list" viewBox="0 0 16 16">
+      <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/>
+    </svg>
+  </button>
+  <!-- Advanced Toolbar Trigger Button Ends -->
+
+  <!-- Advanced Toolbar -->
+  <div class="offcanvas offcanvas-bottom h-10" tabindex="-1" id="offcanvasRight1" aria-labelledby="offcanvasRightLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="offcanvasRightLabel">Advanced Settings</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="row gx-3 gy-3">
+        <div class="col-3">
+          <button type="button" class="btn btn-outline-light w-100 offCanvasSvgButton toggleThemeButton" id="advanced">
+            Toggle Theme
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-toggles2" viewBox="0 0 16 16">
+              <path d="M9.465 10H12a2 2 0 1 1 0 4H9.465c.34-.588.535-1.271.535-2s-.195-1.412-.535-2"/>
+              <path d="M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6m0 1a4 4 0 1 1 0-8 4 4 0 0 1 0 8m.535-10a4 4 0 0 1-.409-1H4a1 1 0 0 1 0-2h2.126q.138-.534.41-1H4a2 2 0 1 0 0 4z"/>
+              <path d="M14 4a4 4 0 1 1-8 0 4 4 0 0 1 8 0"/>
+            </svg>
+          </button>
+        </div>
+        <div class="col-3">
+          <button type="button" class="btn btn-outline-warning w-100 offCanvasSvgButton" onclick="undoHandler()">
+            Undo Delete
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-reply-fill" viewBox="0 0 16 16">
+              <path d="M5.921 11.9 1.353 8.62a.72.72 0 0 1 0-1.238L5.921 4.1A.716.716 0 0 1 7 4.719V6c1.5 0 6 0 7 8-2.5-4.5-7-4-7-4v1.281c0 .56-.606.898-1.079.62z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="col-3">
+          <button type="button" class="btn btn-outline-danger w-100 offCanvasSvgButton" onclick="remakeMoleculeEverywhere()">
+            Refresh Molecule
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-repeat" viewBox="0 0 16 16">
+              <path d="M11 5.466V4H5a4 4 0 0 0-3.584 5.777.5.5 0 1 1-.896.446A5 5 0 0 1 5 3h6V1.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384l-2.36 1.966a.25.25 0 0 1-.41-.192m3.81.086a.5.5 0 0 1 .67.225A5 5 0 0 1 11 13H5v1.466a.25.25 0 0 1-.41.192l-2.36-1.966a.25.25 0 0 1 0-.384l2.36-1.966a.25.25 0 0 1 .41.192V12h6a4 4 0 0 0 3.585-5.777.5.5 0 0 1 .225-.67Z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="col-3">
+          <button type="button" class="btn btn-outline-danger w-100 offCanvasSvgButton" onclick="clearMolecule()">
+            Clear Molecule
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
+              <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/>
+            </svg>
+          </button>
+        </div>
+        <!-- <div class="col-3">
+          <button type="button" class="btn btn-outline-info w-100 offCanvasSvgButton">
+            Velocity Profile
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-speedometer" viewBox="0 0 16 16">
+              <path d="M8 2a.5.5 0 0 1 .5.5V4a.5.5 0 0 1-1 0V2.5A.5.5 0 0 1 8 2M3.732 3.732a.5.5 0 0 1 .707 0l.915.914a.5.5 0 1 1-.708.708l-.914-.915a.5.5 0 0 1 0-.707M2 8a.5.5 0 0 1 .5-.5h1.586a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 8m9.5 0a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H12a.5.5 0 0 1-.5-.5m.754-4.246a.39.39 0 0 0-.527-.02L7.547 7.31A.91.91 0 1 0 8.85 8.569l3.434-4.297a.39.39 0 0 0-.029-.518z"/>
+              <path fill-rule="evenodd" d="M6.664 15.889A8 8 0 1 1 9.336.11a8 8 0 0 1-2.672 15.78zm-4.665-4.283A11.95 11.95 0 0 1 8 10c2.186 0 4.236.585 6.001 1.606a7 7 0 1 0-12.002 0"/>
+            </svg>
+          </button>
+        </div> -->
+        <div class="col-3">
+          <button type="button" class="btn btn-outline-success w-100 offCanvasSvgButton" onclick="uploadMolecule()">
+            Upload Molecule
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload" viewBox="0 0 16 16">
+              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+              <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="col-3">
+          <button type="button" class="btn btn-outline-success w-100 offCanvasSvgButton" onclick="downloadMolecule()">
+            Download Molecule
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Advanced Toolbar Ends -->
+
+</body>
+<!-- Bootstrap 5.3.3 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<!-- Plotly Library -->
+<!-- Full Set - All functions -->
+<!-- <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8" defer></script> -->
+<!-- Just the essentials (scatter + shapes) -->
+<script src="https://cdn.plot.ly/plotly-basic-2.34.0.min.js" charset="utf-8" defer></script>
+<!-- SplideJs Carousal JS -->
+<script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+<!-- Main JS -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<!-- Component List Handler -->
+<script src="{{ url_for('static', filename='js/componentListHandler.js') }}"></script>
+<!-- Component Input Handler -->
+<script src="{{ url_for('static', filename='js/componentInputHandler.js') }}"></script>
+<!-- yaml -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js" integrity="sha512-CSBhVREyzHAjAFfBlIBakjoRUKp5h7VSweP0InR/pAJyptH7peuhCsqAI/snV+TwZmXZqoUklpXp6R6wMnYf5Q==" crossorigin="anonymous" referrerpolicy="no-referrer" async></script>
+<!-- Shapes Plotting Handler -->
+<script src="{{ url_for('static', filename='js/plotlyShapes.js') }}" defer></script>
+<!-- Send Molecule and Plot -->
+<script src="{{ url_for('static', filename='js/sendAndPlot.js') }}" defer></script>
+<!-- Pore plotting and validation logic --> <!-- Being Loaded dynamically inside plotlyShapes.js -->
+<!-- <script src="{{ url_for('static', filename='js/poreLogic.js') }}" defer></script> -->
+<!-- Signal attenuation script -->
+<script src="{{ url_for('static', filename='js/attenuate.js') }}" defer></script>
+<!-- Hide Loader -->
+<script>
+  window.addEventListener("load", function(){
+    loader.hide();
+  });
+</script>
+<script src="{{ url_for('static', filename='js/preloader.js') }}"></script>
+</html>
