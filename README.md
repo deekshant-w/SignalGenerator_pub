@@ -1,14 +1,16 @@
 # Signal Generator
 
-Scientific web application for predicting nanopore resistive pulse signatures, deployed at:
+Scientific web application for predicting nanopore resistive pulse signatures, deployed at: [https://tcossalab.net/signalGenerator](https://tcossalab.net/signalGenerator)
 
-- [https://tcossalab.net/signalGenerator](https://tcossalab.net/signalGenerator)
+## Contributors
+
+See [CONTRIBUTORS.md](./CONTRIBUTORS.md).
 
 ## Citation
 
 If you use this tool or reference the underlying model, cite:
 
-Charron, Martin; Roelen, Zachary; Wadhwa, Deekshant; Tabard-Cossa, Vincent.  
+Martin Charron, Zachary Roelen, Deekshant Wadhwa, Vincent Tabard-Cossa
 **Predicting Resistive Pulse Signatures in Nanopores by Accurately Modeling Access Regions**.  
 arXiv:2411.05589 (v2, 2025).  
 [https://arxiv.org/abs/2411.05589](https://arxiv.org/abs/2411.05589)
@@ -21,7 +23,7 @@ The tool is part of the modeling framework presented in the paper above.
 
 ## What The Application Currently Supports
 
-Based on current backend and frontend behavior:
+Based on current backend and frontend behaviour:
 
 1. Signal generation through a Flask backend endpoint (`generate`).
 2. Input validation/sanitization before generation.
@@ -91,9 +93,9 @@ Run this checklist immediately after reset:
 
 1. Open [https://tcossalab.net/signalGenerator](https://tcossalab.net/signalGenerator).
 2. Confirm page styling and assets load correctly.
-3. Add at least one component and verify expected input controls appear.
+3. Add at least one component and verify that expected input controls appear.
 4. Generate a signal and confirm the plot updates successfully.
-5. If attenuation settings are used, run attenuation once and confirm updated output is shown.
+5. If attenuation settings are used, run attenuation once and confirm the updated output is shown.
 
 ## Rollback Procedure
 
@@ -185,7 +187,7 @@ The JavaScript entry point is `static/js/main.js`. The frontend is modular, and 
    - Sends POST request with routing parameter `generate` to backend.
    - Plots returned signal (`x`, `y`) and stores both original and attenuated data holders.
    - Provides CSV export and plot utility controls in the Plotly mode bar.
-   - **When to edit:** generate request schema, plotting behavior, result export behavior.
+   - **When to edit:** generate request schema, plotting behavior, or result export behavior.
 
 9. `attenuate.js`
    - Handles attenuation parameter input validation and server-side attenuation requests.
