@@ -21,6 +21,36 @@ This application provides an interactive interface to configure nanopore and ana
 
 The tool is part of the modeling framework presented in the paper above.
 
+## Steps to Run Locally
+
+### Prerequisites
+- Python 3.8 or higher
+- `uv` package manager installed
+
+### Steps
+
+1. **Install uv** (if not already installed)
+   ```bash
+   pip install uv
+   ```
+
+2. **Clone/navigate to the project directory**
+   ```bash
+   git clone https://github.com/deekshant-w/SignalGenerator_pub.git
+   cd path/to/SignalGenerator_pub
+   ```
+
+3. **Create a virtual environment and sync dependencies**
+   ```bash
+   uv sync
+   ```
+
+5. **Run the application**
+   ```bash
+   uv run main.py
+   ```
+
+
 ## What The Application Currently Supports
 
 Based on current backend and frontend behaviour:
