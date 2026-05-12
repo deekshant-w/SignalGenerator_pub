@@ -11,5 +11,5 @@ MarkupSafe==3.0.3
 numba==0.60.0
 numpy==2.3.4
 Werkzeug==3.1.6
-scipy==1.15.0
+scipy==1.17.1
 zipp==3.23.0
